@@ -7,3 +7,7 @@ def page_not_found(request, exception):
 
 def permission_denied_view(request, exception):
     return render(request, 'core/403.html', {'path': request.path}, status=403)
+
+
+def internal_server_error(request, exception):
+    return render(request, 'core/500.html', {'path': request.path}, status=500)
