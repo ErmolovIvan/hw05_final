@@ -325,7 +325,6 @@ class PostViewsTests(TestCase):
         )
         self.assertNotIn(post, response.context["page_obj"].object_list)
 
-
     def test_index_cache(self):
         """Тест кэша главной страницы"""
         new_post = Post.objects.create(
