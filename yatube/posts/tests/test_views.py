@@ -8,7 +8,7 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.cache import cache
 
 from ..models import Post, Group, User, Comment, Follow
-from ..constants import NUMBER_OF_POSTS
+from ..constants import NUMBER_OF_POSTS, NUMBER_OF_SYMBOLS_2ND_PAGE
 from ..forms import CommentForm, PostForm
 
 TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
@@ -174,72 +174,6 @@ class PostViewsTests(TestCase):
         response = self.authorized_client.get(reverse('posts:post_create'))
         self.assertIsInstance(response.context.get('form'), PostForm)
 
-    # def test_page_one_paginator(self):
-    #     """На первой странице отображается правильное количество постов"""
-    #     cache.clear()
-    #     # posts = []
-    #     # for i in range(1, 13):
-    #     #     post = Post(
-    #     #         author=PostViewsTests.post.author,
-    #     #         text='Тест' + str(i),
-    #     #         group=PostViewsTests.group,
-    #     #     )
-    #     #     posts.append(post)
-    #     # Post.objects.bulk_create(posts)
-    #     pages = {
-    #         'index': reverse('posts:index'),
-    #         'group_list': reverse(
-    #             'posts:group_list', kwargs={
-    #                 'slug': PostViewsTests.group.slug
-    #             }
-    #         ),
-    #         'profile': reverse(
-    #             'posts:profile', kwargs={
-    #                 'username': PostViewsTests.post.author
-    #             }
-    #         )
-    #     }
-    #
-    #     for page_name, page in pages.items():
-    #         with self.subTest(page_name=page_name):
-    #             response_page_1 = self.authorized_client.get(page)
-    #             self.assertEqual(
-    #                 len(response_page_1.context['page_obj']), NUMBER_OF_POSTS
-    #             )
-    #
-    # def test_page_two_paginator(self):
-    #     """На второй странице отображается правильное количество постов"""
-    #     # posts = []
-    #     # for i in range(1, 13):
-    #     #     post = Post(
-    #     #         author=PostViewsTests.post.author,
-    #     #         text='Тест' + str(i),
-    #     #         group=PostViewsTests.group,
-    #     #     )
-    #     #     posts.append(post)
-    #     # Post.objects.bulk_create(posts)
-    #     pages = {
-    #         'index': reverse('posts:index'),
-    #         'group_list': reverse(
-    #             'posts:group_list', kwargs={
-    #                 'slug': PostViewsTests.group.slug
-    #             }
-    #         ),
-    #         'profile': reverse(
-    #             'posts:profile', kwargs={
-    #                 'username': PostViewsTests.post.author
-    #             }
-    #         )
-    #     }
-    #
-    #     for page_name, page in pages.items():
-    #         with self.subTest(page_name=page_name):
-    #             response_page_2 = self.authorized_client.get(page + '?page=2')
-    #             self.assertEqual(
-    #                 len(response_page_2.context['page_obj']),
-    #                 NUMBER_OF_SYMBOLS_2ND_PAGE
-    #             )
-
     def post_exist_on_page(self):
         """Проверка существует ли созданный пост на странице"""
         post = Post.objects.create(
@@ -383,7 +317,7 @@ class PaginatorViewsTest(TestCase):
         self.authorized_client = Client()
         self.authorized_client.force_login(PaginatorViewsTest.user)
 
-    def test_first_page_contains_ten_records(self):
+    def test_first_page_paginator(self):
         pages = {
                 'index': reverse('posts:index'),
                 'group_list': reverse(
@@ -401,4 +335,28 @@ class PaginatorViewsTest(TestCase):
         for page_name, page in pages.items():
             with self.subTest(page_name=page_name):
                 response_page_1 = self.authorized_client.get(page)
-                self.assertEqual(len(response_page_1.context['page_obj']), NUMBER_OF_POSTS)
+                self.assertEqual(
+                    len(response_page_1.context['page_obj']), NUMBER_OF_POSTS
+                )
+
+    def test_second_page_paginator(self):
+        pages = {
+            'index': reverse('posts:index'),
+            'group_list': reverse(
+                'posts:group_list', kwargs={
+                    'slug': PostViewsTests.group.slug
+                }
+            ),
+            'profile': reverse(
+                'posts:profile', kwargs={
+                    'username': PostViewsTests.post.author
+                }
+            )
+        }
+        for page_name, page in pages.items():
+            with self.subTest(page_name=page_name):
+                response_page_2 = self.authorized_client.get(page + '?page=2')
+                self.assertEqual(
+                    len(response_page_2.context['page_obj']),
+                    NUMBER_OF_SYMBOLS_2ND_PAGE
+                )
