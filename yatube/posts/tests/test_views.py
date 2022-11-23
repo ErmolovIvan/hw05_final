@@ -319,18 +319,18 @@ class PaginatorViewsTest(TestCase):
 
     def test_first_page_paginator(self):
         pages = {
-                'index': reverse('posts:index'),
-                'group_list': reverse(
-                    'posts:group_list', kwargs={
-                        'slug': PaginatorViewsTest.group.slug
-                    }
-                ),
-                'profile': reverse(
-                    'posts:profile', kwargs={
-                        'username': PaginatorViewsTest.post.author
-                    }
-                )
-            }
+            'index': reverse('posts:index'),
+            'group_list': reverse(
+                'posts:group_list', kwargs={
+                    'slug': PaginatorViewsTest.group.slug
+                }
+            ),
+            'profile': reverse(
+                'posts:profile', kwargs={
+                    'username': PaginatorViewsTest.post.author
+                }
+            )
+        }
 
         for page_name, page in pages.items():
             with self.subTest(page_name=page_name):
