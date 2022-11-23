@@ -291,7 +291,7 @@ class PaginatorViewsTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='auth2')
+        cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='slug-test',
@@ -318,6 +318,7 @@ class PaginatorViewsTest(TestCase):
         self.authorized_client.force_login(PaginatorViewsTest.user)
 
     def test_first_page_paginator(self):
+        cache.clear()
         pages = {
             'index': reverse('posts:index'),
             'group_list': reverse(
