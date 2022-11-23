@@ -401,6 +401,4 @@ class PaginatorViewsTest(TestCase):
         for page_name, page in pages.items():
             with self.subTest(page_name=page_name):
                 response_page_1 = self.authorized_client.get(page)
-                self.assertEqual(
-                    len(response_page_1.context['page_obj']), NUMBER_OF_POSTS
-                )
+                self.assertEqual(len(response_page_1.context['page_obj']), NUMBER_OF_POSTS)
