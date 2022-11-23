@@ -1,5 +1,6 @@
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from ..models import Post, Group, User, Comment
 
@@ -8,6 +9,18 @@ class PostFormsTests(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif')
         cls.user = User.objects.create_user(username='auth')
         cls.group = Group.objects.create(
             title='Тестовая группа',
@@ -22,7 +35,8 @@ class PostFormsTests(TestCase):
         cls.post = Post.objects.create(
             author=cls.user,
             text='Тестовый пост больше, чем 15 символов',
-            group=cls.group
+            group=cls.group,
+            image=uploaded
         )
 
     def setUp(self):
@@ -34,13 +48,14 @@ class PostFormsTests(TestCase):
         post_count = Post.objects.count()
         form_data = {
             'text': 'Тестовый текст',
-            'group': PostFormsTests.group.id
+            'group': PostFormsTests.group.id,
+            'image': PostFormsTests.post.image
         }
         response = self.authorized_client.post(
             reverse('posts:post_create'),
             data=form_data
         )
-        post = Post.objects.first()
+        post = Post.objects.order_by('-pk')[0]
 
         self.assertRedirects(response, reverse(
             'posts:profile', kwargs={
@@ -55,10 +70,23 @@ class PostFormsTests(TestCase):
 
     def test_edit_post(self):
         """Валидная форма редактирует пост"""
+        small_gif = (
+            b'\x47\x49\x46\x38\x39\x61\x02\x00'
+            b'\x01\x00\x80\x00\x00\x00\x00\x00'
+            b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+            b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+            b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+            b'\x0A\x00\x3B'
+        )
+        uploaded = SimpleUploadedFile(
+            name='small.gif',
+            content=small_gif,
+            content_type='image/gif')
         post_count = Post.objects.count()
         form_data = {
             'text': 'Новый текст',
-            'group': PostFormsTests.group1.id
+            'group': PostFormsTests.group1.id,
+            'image': uploaded
         }
         response = self.authorized_client.post(
             reverse('posts:post_edit', kwargs={
@@ -89,7 +117,7 @@ class PostFormsTests(TestCase):
             }),
             data=form_data
         )
-        comment = Comment.objects.first()
+        comment = Comment.objects.order_by('-pk')[0]
         self.assertRedirects(response, reverse(
             'posts:post_detail', kwargs={'post_id': PostFormsTests.post.id}
         ))
