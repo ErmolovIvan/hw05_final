@@ -32,6 +32,7 @@ class PostViewsTests(TestCase):
             content=small_gif,
             content_type='image/gif')
         cls.user = User.objects.create_user(username='auth')
+        cls.user1 = User.objects.create_user(username='newauthor')
         cls.group = Group.objects.create(
             title='Тестовая группа',
             slug='slug-test',
@@ -69,16 +70,11 @@ class PostViewsTests(TestCase):
             post = context['page_obj'][0]
         else:
             post = context['post']
-        author = post.author
-        text = post.text
-        image = post.image
-        group = post.group
-        comment = post.comments.last()
-        self.assertEqual(author, PostViewsTests.user)
-        self.assertEqual(text, PostViewsTests.post.text)
-        self.assertEqual(image, PostViewsTests.post.image)
-        self.assertEqual(group, PostViewsTests.group)
-        self.assertEqual(comment, PostViewsTests.comment)
+        self.assertEqual(post.author, PostViewsTests.user)
+        self.assertEqual(post.text, PostViewsTests.post.text)
+        self.assertEqual(post.image, PostViewsTests.post.image)
+        self.assertEqual(post.group, PostViewsTests.group)
+        self.assertEqual(post.id, PostViewsTests.post.id)
 
     def test_pages_uses_correct_template(self):
         """URL-адрес использует соответствующий шаблон."""
@@ -129,13 +125,13 @@ class PostViewsTests(TestCase):
         response = self.authorized_client.get(
             reverse(
                 'posts:profile', kwargs={
-                    'username': PostViewsTests.post.author
+                    'username': PostViewsTests.user
                 }
             )
         )
-        profile_author = response.context['author']
         self.post_check(response.context)
-        self.assertEqual(profile_author, PostViewsTests.user)
+        self.assertEqual(response.context['author'], PostViewsTests.user)
+        self.assertFalse(response.context['following'])
 
     def test_post_detail_page_show_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
@@ -146,10 +142,12 @@ class PostViewsTests(TestCase):
                 }
             )
         )
-        post_detail_context = response.context.get('post')
-        self.assertEqual(post_detail_context, PostViewsTests.post)
+        self.assertEqual(response.context['post'], PostViewsTests.post)
         self.post_check(response.context)
-        self.assertIsInstance(response.context.get('form'), CommentForm)
+        self.assertIsInstance(response.context['form'], CommentForm)
+        self.assertEqual(
+            response.context['comments'][0], PostViewsTests.comment
+        )
 
     def test_post_edit_page_show_correct_context(self):
         """Шаблон post_edit сформирован с правильным контекстом."""
@@ -236,40 +234,44 @@ class PostViewsTests(TestCase):
 
     def test_follow(self):
         """Тест подписки"""
+        self.assertFalse(Follow.objects.filter(
+            user=PostViewsTests.user,
+            author=PostViewsTests.user1
+        ).exists())
         count_follow = Follow.objects.count()
-        new_author = User.objects.create(username='newauthor')
-        self.authorized_client.post(reverse('posts:profile_follow', kwargs={
-            'username': new_author.username
-        }))
+        Follow.objects.create(
+            user=PostViewsTests.user,
+            author=PostViewsTests.user1
+        )
         self.assertEqual(Follow.objects.count(), count_follow + 1)
         self.assertTrue(
             Follow.objects.filter(
-                user=PostViewsTests.user, author=new_author
+                user=PostViewsTests.user, author=PostViewsTests.user1
             ).exists()
         )
 
     def test_unfollow(self):
         """Тест отписки"""
         count_follow = Follow.objects.count()
-        new_author = User.objects.create(username='newauthor')
-        self.authorized_client.post(reverse('posts:profile_follow', kwargs={
-            'username': new_author.username
-        }))
-        self.authorized_client.post(reverse('posts:profile_unfollow', kwargs={
-            'username': new_author.username
-        }))
+        Follow.objects.create(
+            user=PostViewsTests.user,
+            author=PostViewsTests.user1
+        )
+        Follow.objects.filter(
+            user=PostViewsTests.user,
+            author=PostViewsTests.user1
+        ).delete()
         self.assertEqual(Follow.objects.count(), count_follow)
         self.assertFalse(
             Follow.objects.filter(
-                user=PostViewsTests.user, author=new_author
+                user=PostViewsTests.user, author=PostViewsTests.user1
             ).exists()
         )
 
     def test_follow_index(self):
         """Тест появления новой записи в подписках"""
-        new_user = User.objects.create_user(username="newauthor")
         new_client = Client()
-        new_client.force_login(new_user)
+        new_client.force_login(PostViewsTests.user1)
         new_client.post(
             reverse(
                 "posts:profile_follow",
@@ -285,6 +287,14 @@ class PostViewsTests(TestCase):
         self.assertIn(new_post,
                       response_new_user.context["page_obj"].object_list)
         self.assertNotIn(new_post, response.context["page_obj"].object_list)
+
+    def test_follow_to_yourself(self):
+        """Пользователь не может подписаться на себя"""
+        count_follow = Follow.objects.count()
+        self.authorized_client.post(reverse('posts:profile_follow', kwargs={
+            'username': PostViewsTests.user
+        }))
+        self.assertEqual(Follow.objects.count(), count_follow)
 
 
 class PaginatorViewsTest(TestCase):
